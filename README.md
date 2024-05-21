@@ -1,4 +1,4 @@
-# FIT'sabilillah
+# FITIVITIES
 
 This repository is a final website project from Software Project Class, Teknik Informatika Universitas Padjadjaran. 
 
@@ -15,22 +15,6 @@ In this project, we build a software based on a website that is engaged in sport
 | 140810210052  | Hermanu Widyatama  |
 | 140810210059  | Prames Ray Lapian  |
 
-## Change log
-- **[Sprint Planning](changelog/sprint-planning.md) - (planning date)** 
-   -  Short changes 1
-   - Short changes 2
-
-- **[Sprint 1](changelog/sprint-1.md) - (date from x until x)** 
-   - Short changes 1
-   - Short changes 2
-
-- **[Sprint 2](changelog/sprint-2.md) - (date from x until x)** 
-   - Short changes 1
-   - Short changes 2
-   
-- **[Sprint 3](changelog/sprint-3.md) - (date from x until x)** 
-   - Short changes 1
-   - Short changes 2
 
 ## Running The App
 
