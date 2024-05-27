@@ -16,6 +16,10 @@ In this project, we build a software based on a website that is engaged in sport
 | 140810210059  | Prames Ray Lapian  |
 
 
+## Link Figma
+
+https://www.figma.com/design/1t6SBAh1cTJw3sDOhGBKIN/Projek-Gym---PPL-I?node-id=0-1&t=wsAcpcILflX2R6kG-1
+
 ## Running The App
 
 TO;DO with steps
