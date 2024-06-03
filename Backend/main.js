@@ -9,11 +9,7 @@ const bcrypt = require('bcrypt')
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
-<<<<<<< HEAD
-  password: "root",
-=======
   password: "",
->>>>>>> 90fadeb0e22e761281fe1ba83449ed8cc4aa5b6d
   database: "db_fitivities",
 })
 
@@ -151,6 +147,63 @@ app.get('/get/review/:pengguna_id', (req, res) => {
       return res.status(500).send('Failed to retrieve reviews');
     }
     res.status(200).send(rows);
+  });
+});
+
+
+// Check-in route
+app.post('/check-in', (req, res) => {
+  const { pengguna_id } = req.body;
+  if (!pengguna_id) {
+    return res.status(400).send({ message: 'pengguna_id is required' });
+  }
+
+  const waktu_checkin = new Date().toISOString();
+  const query = `INSERT INTO checkinout (waktu_checkin, pengguna_id) VALUES (?, ?)`;
+
+  database.query(query, [waktu_checkin, pengguna_id], function (err) {
+    if (err) {
+      return res.status(500).send({ message: 'Failed to check in', error: err.message });
+    }
+    res.status(200).send({ message: 'Checked in successfully', check_in_out_id: this.lastID });
+  });
+});
+
+// Check-out route
+app.post('/check-out', (req, res) => {
+  const { pengguna_id } = req.body;
+  if (!pengguna_id) {
+    return res.status(400).send({ message: 'pengguna_id is required' });
+  }
+
+  const waktu_checkout = new Date().toISOString();
+  const query = `UPDATE checkinout SET waktu_checkout = ? WHERE pengguna_id = ? AND waktu_checkout IS NULL`;
+
+  database.query(query, [waktu_checkout, pengguna_id], function (err) {
+    if (err) {
+      return res.status(500).send({ message: 'Failed to check out', error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(400).send({ message: 'No active check-in found for this user' });
+    }
+    res.status(200).send({ message: 'Checked out successfully' });
+  });
+});
+
+// Get visitor count
+app.get('/visitor-count', (req, res) => {
+  const query = `SELECT COUNT(*) AS count FROM checkinout WHERE waktu_checkout IS NULL`;
+  database.query(query, [], (err, rows) => {
+    if (err) {
+      console.error('Database query error:', err);
+      return res.status(500).send({ message: 'Failed to retrieve visitor count', error: err.message });
+    }
+    console.log('Query result:', rows);
+    if (rows.length > 0) {
+      res.status(200).send({ visitorCount: rows[0].count });
+    } else {
+      res.status(200).send({ visitorCount: 0 });
+    }
   });
 });
 
