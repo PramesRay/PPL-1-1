@@ -9,11 +9,7 @@ const bcrypt = require('bcrypt')
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
-<<<<<<< HEAD
   password: "root",
-=======
-  password: "",
->>>>>>> 90fadeb0e22e761281fe1ba83449ed8cc4aa5b6d
   database: "db_fitivities",
 })
 
@@ -73,6 +69,7 @@ app.post('/login', async (req, res) => {
     // Set session and login user
     req.session.loggedin = true
     req.session.username = user.username
+    req.session.userId = user.pengguna_id
     res.redirect('/')
     console.log('Login berhasil!')
   })
@@ -104,7 +101,7 @@ app.post('/register', async (req, res) => {
 
       // Insert the new user into the database
       database.query('INSERT INTO `user` (`email`, `username`, `password`, `nomor_telepon`, `role`) VALUES (?, ?, ?, ?, ?)', 
-      [email, username, hashedPassword, phone, role], (err, results) => {
+      [email, username, hashedPassword, phone, role], (err, res) => {
         if (err) {
           console.error('Database insert error:', err)
           return res.status(500).send('Terjadi kesalahan pada server.')
@@ -135,25 +132,141 @@ app.post('/post/review', async (req, res) => {
     [deskripsi_review, rating, pengguna_id], (err, results) => {
       if (err) {
         console.error('Database insert error:', err);
-        return res.status(500).send('Failed to add review');
+        return results.status(500).send('Failed to add review');
       }
-      res.status(201).send({ review_id: results.insertId });
+      results.status(201).send({ review_id: results.insertId });
     });
 });
 
-// Endpoint untuk mendapatkan ulasan berdasarkan ID pengguna
-app.get('/get/review/:pengguna_id', (req, res) => {
-  const pengguna_id = req.params.pengguna_id;
-
-  database.query('SELECT * FROM review WHERE pengguna_id = ?', [pengguna_id], (err, rows) => {
+// Endpoint untuk mendapatkan semua ulasan yang diurutkan berdasarkan review_id secara terbaru
+app.get('/get/review', (req, res) => {
+  database.query('SELECT * FROM review ORDER BY review_id DESC', (err, rows) => {
     if (err) {
       console.error('Database query error:', err);
-      return res.status(500).send('Failed to retrieve reviews');
+      return res.status(500).send('Failed to retrieve review');
     }
     res.status(200).send(rows);
   });
 });
 
+app.put('/update/profile/:id', (req, res) => {
+  const userID = req.params.id //untuk keperluan testing sementara
+  const userId = req.session.userId;
+  const { nama, email, username, nomor_telepon, alamat, profile} = req.body;
+
+  if (userID) {
+    // Check if email already exists
+    database.query('SELECT * FROM user WHERE email = ?', [email], async (err, res1) => {
+      if (err) {
+        console.error('Database query error:', err)
+        return res.status(500).send('Terjadi kesalahan pada server.')
+      }
+
+      if (res1.length > 0) {
+        return res.status(400).send('Email sudah terdaftar.')
+      }
+
+      // Check if number already exists
+      database.query('SELECT * FROM user WHERE nomor_telepon = ?', [nomor_telepon], async (err, res2) => {
+        if (err) {
+          console.error('Database query error:', err)
+          return res.status(500).send('Terjadi kesalahan pada server.')
+        }
+
+        if (res2.length > 0) {
+          return res.status(400).send('Nomor Handphone sudah terdaftar.')
+        }
+
+        // Check if username already exists
+        database.query('SELECT * FROM user WHERE username = ?', [username], async (err, res3) => {
+          if (err) {
+            console.error('Database query error:', err)
+            return res.status(500).send('Terjadi kesalahan pada server.')
+          }
+
+          if (res3.length > 0) {
+            return res.status(400).send('username sudah terdaftar.')
+          }
+
+          database.query('UPDATE user SET nama = ?, email = ?, username = ?, nomor_telepon = ?, alamat = ? WHERE pengguna_id = ?', [ nama, email, username, nomor_telepon, alamat, userID ], (err, row) => {
+            if (err) {
+              console.error('Database query error:', err);
+              return res.status(500).send('Failed to retrieve data account');
+            }
+            
+            res.status(200).json({ message: 'Profile updated successfully'});
+          });
+        })
+      })
+    })
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+});
+
+// Endpoint untuk mendapatkan data pengguna di pengaturan akun
+app.get('/get/user/:pengguna_id', (req, res) => {
+  const penggunaId = req.params.pengguna_id;
+  
+  // Gunakan parameter penggunaId dalam query dengan cara yang aman
+  database.query('SELECT nama, email, username, nomor_telepon, alamat, tanggal_bergabung FROM user WHERE pengguna_id = ?', [penggunaId], (err, rows) => {
+    if (err) {
+      console.error('Database query error:', err);
+      return res.status(500).send('Failed to retrieve data account');
+    }
+    
+    // Periksa apakah ada data yang ditemukan
+    if (rows.length === 0) {
+      return res.status(404).send('User not found');
+    }
+    
+    res.status(200).send(rows[0]);
+  });
+});
+
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
+
+
+// Endpoint untuk merubah password
+app.put('/update/password/:id', async (req, res) => {
+  const penggunaID = req.params.id; //untuk keperluan testing
+  const penggunaId = req.session.userId 
+  const { passwordLama, passwordBaru, conPasswordBaru } = req.body;
+
+  database.query('SELECT password FROM user WHERE pengguna_id = ?', [penggunaID], async (err, results) => {
+    if (err) {
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+
+    if (results.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // Periksa apakah password lama cocok
+    const isMatch = await bcrypt.compare(passwordLama, user.password);
+    if (!isMatch) {
+        return res.status(400).json({ message: 'Old password is incorrect' });
+    }
+
+    // Check if password and confirm password match
+    if (passwordBaru !== conPasswordBaru) {
+      return res.status(400).send('Password dan konfirmasi password tidak cocok.')
+    }
+
+    // Hash password baru
+    const hashedNewPassword = await bcrypt.hash(passwordBaru, 10);
+
+    // Update password di database
+    database.query('UPDATE user SET password = ? WHERE pengguna_id = ?', [hashedNewPassword, penggunaID], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+
+        res.status(200).json({ message: 'Password updated successfully' });
+    });
+  });
+});
