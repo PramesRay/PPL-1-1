@@ -9,7 +9,11 @@ const bcrypt = require('bcrypt')
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
+<<<<<<< HEAD
   password: "root",
+=======
+  password: "",
+>>>>>>> 90fadeb0e22e761281fe1ba83449ed8cc4aa5b6d
   database: "db_fitivities",
 })
 
@@ -36,6 +40,42 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
   res.render('login/login')
+})
+
+app.post('/login', async (req, res) => {
+	const username = req.body.usernameLogin
+	const password = req.body.passwordLogin
+
+  console.log('login attempt:', { username, password})
+
+  // Check if user exists
+  database.query('SELECT * FROM user WHERE username = ?', [username], async (err, result) => {
+    if (err) {
+      console.error('Database query error:', err)
+      return res.status(500).send('Terjadi kesalahan pada server.')
+    }
+
+    if (result.length === 0) {
+      return res.status(400).send('username tidak ditemukan.')
+    }
+
+    const user = result[0]
+    console.log('User found:', user)
+
+    // Compare hashed password
+    const match = await bcrypt.compare(password, user.password)
+    console.log('Password match:', match)
+    
+    if (!match) {
+      return res.status(400).send('Password salah.')
+    }
+
+    // Set session and login user
+    req.session.loggedin = true
+    req.session.username = user.username
+    res.redirect('/')
+    console.log('Login berhasil!')
+  })
 })
 
 app.post('/register', async (req, res) => {
