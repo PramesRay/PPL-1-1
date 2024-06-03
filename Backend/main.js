@@ -9,7 +9,7 @@ const bcrypt = require('bcrypt')
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "prames",
+  password: "root",
   database: "db_fitivities",
 })
 
@@ -81,6 +81,38 @@ app.post('/register', async (req, res) => {
     res.status(500).send('Terjadi kesalahan pada server.')
   }
 })
+
+// Endpoint untuk menambahkan review
+app.post('/post/review', async (req, res) => {
+  const { deskripsi_review, rating, pengguna_id } = req.body;
+
+  if (!deskripsi_review || !rating || !pengguna_id) {
+    return res.status(400).send('Missing required fields');
+  }
+
+  // Menambahkan review ke database
+  database.query('INSERT INTO review (deskripsi_review, rating, pengguna_id) VALUES (?, ?, ?)',
+    [deskripsi_review, rating, pengguna_id], (err, results) => {
+      if (err) {
+        console.error('Database insert error:', err);
+        return res.status(500).send('Failed to add review');
+      }
+      res.status(201).send({ review_id: results.insertId });
+    });
+});
+
+// Endpoint untuk mendapatkan ulasan berdasarkan ID pengguna
+app.get('/get/review/:pengguna_id', (req, res) => {
+  const pengguna_id = req.params.pengguna_id;
+
+  database.query('SELECT * FROM review WHERE pengguna_id = ?', [pengguna_id], (err, rows) => {
+    if (err) {
+      console.error('Database query error:', err);
+      return res.status(500).send('Failed to retrieve reviews');
+    }
+    res.status(200).send(rows);
+  });
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
