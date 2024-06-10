@@ -32,17 +32,32 @@ app.set('view engine', 'ejs')
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
+  // res.status(200).json({message: "Berhasil masuk ke halaman utama"})
 })
 
 app.get('/login', (req, res) => {
+  const loginStatus = req.session.loggedin
+  
+  if (loginStatus) {
+    console.log("Anda telah login")
+    return res.redirect('/')
+  }
+
   res.render('login/login')
 })
 
 app.post('/login', async (req, res) => {
-	const username = req.body.usernameLogin
-	const password = req.body.passwordLogin
+	// const username = req.body.usernameLogin
+	// const password = req.body.passwordLogin
+  const {username:username, password:password} = req.body
+  const loginStatus = req.session.loggedin
+  
+  if (loginStatus) {
+    console.log("Anda telah login")
+    return res.redirect('/')
+  }
 
-  console.log('login attempt:', { username, password})
+  console.log('login attempt:', { username, password })
 
   // Check if user exists
   database.query('SELECT * FROM user WHERE username = ?', [username], async (err, result) => {
@@ -70,8 +85,19 @@ app.post('/login', async (req, res) => {
     req.session.loggedin = true
     req.session.username = user.username
     req.session.userId = user.pengguna_id
-    res.redirect('/')
-    console.log('Login berhasil!')
+    req.session.role = user.role
+    console.log('Login berhasil! kamu seorang ', req.session.role)
+    return res.redirect('/')
+  })
+})
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      console.log(err)
+    } else {
+      res.redirect('/')
+    }
   })
 })
 
@@ -101,7 +127,7 @@ app.post('/register', async (req, res) => {
 
       // Insert the new user into the database
       database.query('INSERT INTO `user` (`email`, `username`, `password`, `nomor_telepon`, `role`) VALUES (?, ?, ?, ?, ?)', 
-      [email, username, hashedPassword, phone, role], (err, res) => {
+      [email, username, hashedPassword, phone, role], (err, result) => {
         if (err) {
           console.error('Database insert error:', err)
           return res.status(500).send('Terjadi kesalahan pada server.')
@@ -109,7 +135,8 @@ app.post('/register', async (req, res) => {
 
         req.session.loggedin = true
         req.session.username = username
-        res.redirect('/')
+
+        res.redirect('/login')
         console.log('Registrasi berhasil dan data berhasil ditambah!')
       })
     })
@@ -121,7 +148,12 @@ app.post('/register', async (req, res) => {
 
 // Endpoint untuk menambahkan review
 app.post('/post/review', async (req, res) => {
-  const { deskripsi_review, rating, pengguna_id } = req.body;
+  const pengguna_id = req.session?.userId
+  const { deskripsi_review, rating } = req.body;
+
+  if (!pengguna_id) {
+    return res.status(401).json({ error: "Akses tidak sah" });
+}
 
   if (!deskripsi_review || !rating || !pengguna_id) {
     return res.status(400).send('Missing required fields');
@@ -150,11 +182,14 @@ app.get('/get/review', (req, res) => {
 });
 
 app.put('/update/profile/:id', (req, res) => {
-  const userID = req.params.id //untuk keperluan testing sementara
-  const userId = req.session.userId;
+  const userId = req.params.id //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   const { nama, email, username, nomor_telepon, alamat, profile} = req.body;
 
-  if (userID) {
+  if (!userId) {
+    return res.status(401).json({ error: "Akses tidak sah" });
+  }
+
+  if (userId) {
     // Check if email already exists
     database.query('SELECT * FROM user WHERE email = ?', [email], async (err, res1) => {
       if (err) {
@@ -188,7 +223,7 @@ app.put('/update/profile/:id', (req, res) => {
             return res.status(400).send('username sudah terdaftar.')
           }
 
-          database.query('UPDATE user SET nama = ?, email = ?, username = ?, nomor_telepon = ?, alamat = ? WHERE pengguna_id = ?', [ nama, email, username, nomor_telepon, alamat, userID ], (err, row) => {
+          database.query('UPDATE user SET nama = ?, email = ?, username = ?, nomor_telepon = ?, alamat = ? WHERE pengguna_id = ?', [ nama, email, username, nomor_telepon, alamat, userId ], (err, row) => {
             if (err) {
               console.error('Database query error:', err);
               return res.status(500).send('Failed to retrieve data account');
@@ -206,10 +241,14 @@ app.put('/update/profile/:id', (req, res) => {
 
 // Endpoint untuk mendapatkan data pengguna di pengaturan akun
 app.get('/get/user/:pengguna_id', (req, res) => {
-  const penggunaId = req.params.pengguna_id;
+  const pengguna_Id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+
+  if (!pengguna_Id) {
+    return res.status(401).json({ error: "Akses tidak sah" });
+  }
   
-  // Gunakan parameter penggunaId dalam query dengan cara yang aman
-  database.query('SELECT nama, email, username, nomor_telepon, alamat, tanggal_bergabung FROM user WHERE pengguna_id = ?', [penggunaId], (err, rows) => {
+  // Gunakan parameter pengguna_Id dalam query dengan cara yang aman
+  database.query('SELECT nama, email, username, nomor_telepon, alamat, tanggal_bergabung FROM user WHERE pengguna_id = ?', [pengguna_Id], (err, rows) => {
     if (err) {
       console.error('Database query error:', err);
       return res.status(500).send('Failed to retrieve data account');
@@ -223,9 +262,11 @@ app.get('/get/user/:pengguna_id', (req, res) => {
     res.status(200).send(rows[0]);
   })
 })
+
 // Check-in route
-app.post('/check-in', (req, res) => {
-  const { pengguna_id } = req.body;
+app.post('/check-in/:pengguna_id', (req, res) => {
+  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  
   if (!pengguna_id) {
     return res.status(400).send({ message: 'pengguna_id is required' });
   }
@@ -242,8 +283,9 @@ app.post('/check-in', (req, res) => {
 });
 
 // Check-out route
-app.post('/check-out', (req, res) => {
-  const { pengguna_id } = req.body;
+app.post('/check-out/:pengguna_id', (req, res) => {
+  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  
   if (!pengguna_id) {
     return res.status(400).send({ message: 'pengguna_id is required' });
   }
@@ -263,7 +305,13 @@ app.post('/check-out', (req, res) => {
 });
 
 // Get visitor count
-app.get('/visitor-count', (req, res) => {
+app.get('/visitor-count/:pengguna_id', (req, res) => {
+  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  
+  if (!pengguna_id) {
+    return res.status(400).send({ message: 'pengguna_id is required' });
+  }
+
   const query = `SELECT COUNT(*) AS count FROM checkinout WHERE waktu_checkout IS NULL`;
   database.query(query, [], (err, rows) => {
     if (err) {
@@ -281,22 +329,30 @@ app.get('/visitor-count', (req, res) => {
 
 // API endpoint to create a new transaction
 app.post('/transactions', (req, res) => {
-  const {tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id } = req.body;
+  const {metode_pembayaran, pengguna_id, level_id } = req.body;
+  const tanggal_transaksi = new Date().toISOString();
 
-  // Check if all required fields are provided
-  if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
-    return res.status(400).json({ error: 'Please provide all required fields' });
-  }
-
-  // Prepare the SQL query
-  const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id) VALUES (?, ?, ?, ?, ?)';
-  const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id];
-
-  // Execute the SQL query
-  database.query(query, values, (err, result) => {
+  database.query("SELECT * from level where level_id = ?", [level_id], (err, result) => {
     if (err) throw err;
-    res.status(201).json({ message: 'Transaction created successfully' });
-  });
+    const total_pembayaran = result[0].harga;
+    // console.log({ result })
+  
+
+    // Check if all required fields are provided
+    if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
+      return res.status(400).json({ total_pembayaran : total_pembayaran, tanggal_transaksi : tanggal_transaksi});
+    }
+
+    // Prepare the SQL query
+    const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id) VALUES (?, ?, ?, ?, ?)';
+    const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id];
+
+    // Execute the SQL query
+    database.query(query, values, (err, results) => {
+      if (err) throw err;
+      res.status(201).json({ message: 'Transaction created successfully' });
+    });
+  }); 
 });
 
 app.listen(port, () => {
@@ -305,12 +361,15 @@ app.listen(port, () => {
 
 
 // Endpoint untuk merubah password
-app.put('/update/password/:id', async (req, res) => {
-  const penggunaID = req.params.id; //untuk keperluan testing
-  const penggunaId = req.session.userId 
+app.put('/update/password/:pengguna_id', async (req, res) => {
+  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   const { passwordLama, passwordBaru, conPasswordBaru } = req.body;
 
-  database.query('SELECT password FROM user WHERE pengguna_id = ?', [penggunaID], async (err, results) => {
+  if (!pengguna_id) {
+    return res.status(401).json({ error: "Akses tidak sah" });
+  }
+
+  database.query('SELECT password FROM user WHERE pengguna_id = ?', [pengguna_id], async (err, results) => {
     if (err) {
         return res.status(500).json({ message: 'Internal server error' });
     }
@@ -336,7 +395,7 @@ app.put('/update/password/:id', async (req, res) => {
     const hashedNewPassword = await bcrypt.hash(passwordBaru, 10);
 
     // Update password di database
-    database.query('UPDATE user SET password = ? WHERE pengguna_id = ?', [hashedNewPassword, penggunaID], (err, results) => {
+    database.query('UPDATE user SET password = ? WHERE pengguna_id = ?', [hashedNewPassword, pengguna_id], (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Internal server error' });
         }
