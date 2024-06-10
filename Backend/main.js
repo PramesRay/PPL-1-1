@@ -335,8 +335,6 @@ app.post('/transactions', (req, res) => {
   database.query("SELECT * from level where level_id = ?", [level_id], (err, result) => {
     if (err) throw err;
     const total_pembayaran = result[0].harga;
-    // console.log({ result })
-  
 
     // Check if all required fields are provided
     if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
