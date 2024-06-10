@@ -9,7 +9,7 @@ const bcrypt = require('bcrypt')
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "root",
+  password: "",
   database: "db_fitivities",
 })
 
@@ -276,6 +276,26 @@ app.get('/visitor-count', (req, res) => {
     } else {
       res.status(200).send({ visitorCount: 0 });
     }
+  });
+});
+
+// API endpoint to create a new transaction
+app.post('/transactions', (req, res) => {
+  const {tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id } = req.body;
+
+  // Check if all required fields are provided
+  if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
+    return res.status(400).json({ error: 'Please provide all required fields' });
+  }
+
+  // Prepare the SQL query
+  const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id) VALUES (?, ?, ?, ?, ?)';
+  const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id];
+
+  // Execute the SQL query
+  database.query(query, values, (err, result) => {
+    if (err) throw err;
+    res.status(201).json({ message: 'Transaction created successfully' });
   });
 });
 
