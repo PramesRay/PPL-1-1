@@ -5,6 +5,7 @@ const port = 3000
 var session = require('express-session')
 var bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
+const QRCode = require('qrcode')
 
 const database = mysql.createConnection({
   host: "localhost",
@@ -182,7 +183,7 @@ app.get('/get/review', (req, res) => {
 });
 
 app.put('/update/profile/:id', (req, res) => {
-  const userId = req.params.id //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const userId = req.id //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   const { nama, email, username, nomor_telepon, alamat, profile} = req.body;
 
   if (!userId) {
@@ -241,7 +242,7 @@ app.put('/update/profile/:id', (req, res) => {
 
 // Endpoint untuk mendapatkan data pengguna di pengaturan akun
 app.get('/get/user/:pengguna_id', (req, res) => {
-  const pengguna_Id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_Id = req.session.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
 
   if (!pengguna_Id) {
     return res.status(401).json({ error: "Akses tidak sah" });
@@ -265,7 +266,7 @@ app.get('/get/user/:pengguna_id', (req, res) => {
 
 // Check-in route
 app.post('/check-in/:pengguna_id', (req, res) => {
-  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   
   if (!pengguna_id) {
     return res.status(400).send({ message: 'pengguna_id is required' });
@@ -284,7 +285,7 @@ app.post('/check-in/:pengguna_id', (req, res) => {
 
 // Check-out route
 app.post('/check-out/:pengguna_id', (req, res) => {
-  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   
   if (!pengguna_id) {
     return res.status(400).send({ message: 'pengguna_id is required' });
@@ -306,7 +307,7 @@ app.post('/check-out/:pengguna_id', (req, res) => {
 
 // Get visitor count
 app.get('/visitor-count/:pengguna_id', (req, res) => {
-  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   
   if (!pengguna_id) {
     return res.status(400).send({ message: 'pengguna_id is required' });
@@ -353,6 +354,38 @@ app.post('/transactions', (req, res) => {
   }); 
 });
 
+app.get('/qrcode/:pengguna_id', (req, res) => {
+  const pengguna_id = req.params.pengguna_id;
+  console.log('Requested pengguna_id:', pengguna_id);
+
+  // Lakukan query ke database untuk memeriksa keberadaan pengguna_id
+  const query = 'SELECT * FROM user WHERE pengguna_id = ?';
+  database.query(query, [pengguna_id], (err, results) => {
+    if (err) {
+      console.error('Database query error:', err);
+      return res.status(500).send('Terjadi kesalahan di server');
+    }
+
+    console.log('Query result:', results);
+
+    // Jika pengguna_id tidak ditemukan di database
+    if (results.length === 0) {
+      return res.status(404).send('Pengguna tidak ditemukan');
+    }
+
+    // Jika pengguna_id valid, hasilkan QR Code
+    QRCode.toDataURL(`http://example.com/user/${pengguna_id}`, (err, url) => {
+      if (err) {
+        console.error('Failed to generate QR Code:', err);
+        return res.status(500).send('Gagal menghasilkan QR Code');
+      }
+
+      // Kirim gambar QR Code sebagai respons
+      res.send(`<img src="${url}">`);
+    });
+  });
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
@@ -360,7 +393,7 @@ app.listen(port, () => {
 
 // Endpoint untuk merubah password
 app.put('/update/password/:pengguna_id', async (req, res) => {
-  const pengguna_id = req.params.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   const { passwordLama, passwordBaru, conPasswordBaru } = req.body;
 
   if (!pengguna_id) {
