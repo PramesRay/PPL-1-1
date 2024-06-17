@@ -1,11 +1,8 @@
+<script setup></script>
+
 <template>
-    <div
-        class="m-auto mt-10 container rounded-full h-5 w-3/4 bg-gradient-to-r from-[#F9F295] via-[#E0AA3E] to-[#FAF398]">
+    <div class="container m-auto mt-10 w-full px-5 lg:px-20">
+        <div class="rounded-lg h-3 w-full bg-gradient-to-r from-[#F9F295] via-[#E0AA3E] to-[#FAF398]">
+        </div>
     </div>
 </template>
-
-<script>
-export default {
-    name: 'MembershipCard'
-}
-</script>
