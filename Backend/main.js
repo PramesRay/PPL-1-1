@@ -8,6 +8,10 @@ const bcrypt = require('bcrypt')
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const midtransClient = require('midtrans-client');
+const moment = require('moment');
+const jwt = require('jsonwebtoken');
+
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -23,7 +27,7 @@ const upload = multer({ storage: storage });
 const database = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "prames",
+  password: "root",
   database: "db_fitivities",
 })
 
@@ -45,7 +49,8 @@ database.connect((err) => {
 app.set('view engine', 'ejs')
 
 app.get('/', (req, res) => {
-  res.status(200).json({message: "Berhasil masuk ke halaman utama"})
+  res.render('payment')
+  // res.status(200).json({message: "Berhasil masuk ke halaman utama"})
 })
 
 app.get('/login', (req, res) => {
@@ -60,9 +65,9 @@ app.get('/login', (req, res) => {
 })
 
 app.post('/login', async (req, res) => {
-	// const username = req.body.usernameLogin
-	// const password = req.body.passwordLogin
-  const {username, password} = req.body
+	const username = req.body.usernameLogin
+	const password = req.body.passwordLogin
+  // const {username, password} = req.body
   const loginStatus = req.session.loggedin
   
   if (loginStatus) {
@@ -131,7 +136,7 @@ app.post('/register', async (req, res) => {
       }
       
       // Check if phone number already exists
-      database.query('SELECT * FROM user WHERE phone = ?', [phone], async (err, res2) => {
+      database.query('SELECT * FROM user WHERE nomor_telepon = ?', [phone], async (err, res2) => {
         if (err) {
           console.error('Database query error:', err)
           return res.status(500).json({ message:'Terjadi kesalahan pada server' })
@@ -160,6 +165,8 @@ app.post('/register', async (req, res) => {
 
         req.session.loggedin = true
         req.session.username = username
+        req.session.userId = user.pengguna_id
+        req.session.role = user.role
 
         res.redirect('/login')
         console.log('Registrasi berhasil dan data berhasil ditambah!')
@@ -178,7 +185,7 @@ app.post('/post/review', async (req, res) => {
 
   if (!pengguna_id) {
     return res.status(401).json({ message: "Login dulu dong!" });
-}
+  }
 
   if (!deskripsi_review || !rating || !pengguna_id) {
     return res.status(400).json({ message:'Missing required fields' })
@@ -189,9 +196,9 @@ app.post('/post/review', async (req, res) => {
     [deskripsi_review, rating, pengguna_id], (err, results) => {
       if (err) {
         console.error('Database insert error:', err);
-        return results.status(500).json({ message:'Failed to add review' })
+        return res.status(500).json({ message:'Failed to add review' })
       }
-      results.status(201).json({ review_id: results.insertId, message: 'Review berhasil ditambahkan' });
+      return res.status(201).json({ review_id: results.insertId, message: 'Review berhasil ditambahkan' });
     });
 });
 
@@ -381,8 +388,10 @@ app.get('/visitor-count/:pengguna_id', (req, res) => {
 
 // API endpoint to create a new transaction
 app.post('/transactions', (req, res) => {
+  //const userId = req.session.userId
   const {metode_pembayaran, pengguna_id, level_id } = req.body;
-  const tanggal_transaksi = new Date().toISOString();
+  const tanggal_transaksi = moment().format('YYYY-MM-DD HH:mm:ss');
+  const status_pembayaran = "pending"
 
   database.query("SELECT * from level where level_id = ?", [level_id], (err, result) => {
     if (err) throw err;
@@ -394,8 +403,8 @@ app.post('/transactions', (req, res) => {
     }
 
     // Prepare the SQL query
-    const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id) VALUES (?, ?, ?, ?, ?)';
-    const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id];
+    const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran) VALUES (?, ?, ?, ?, ?, ?)';
+    const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran];
 
     // Execute the SQL query
     database.query(query, values, (err, results) => {
@@ -453,3 +462,83 @@ app.put('/update/password/:pengguna_id', async (req, res) => {
 app.listen(port, () => {
   console.log(`Fitivities listening on port ${port}`);
 });
+
+// Create Snap API instance
+let snap = new midtransClient.Snap({
+  // Set to true if you want Production Environment (accept real transaction).
+  isProduction : false,
+  serverKey : 'SB-Mid-server-R7IFInBtUj5BY4DIJAgjT35_'
+});
+
+
+app.get('/get-transaction-token/:id', async (req, res) => {
+  const pengguna_id = req.session.userId; // Make sure user is logged in
+  const transaksi_id = req.params.id; 
+  
+  if (!pengguna_id) {
+    return res.status(401).json({ message: "Login dulu dong!" });
+  }
+  
+  try {
+      database.query("SELECT * FROM transaction WHERE transaksi_id = ? AND pengguna_id = ?", [transaksi_id, pengguna_id], async (err, result) => {
+        if (err) {
+          console.log(err)
+          return res.status(500).json({ message:'Terjadi kesalahan pada server'})
+        } 
+        
+        if (result.length === 0) {
+          console.log(transaksi_id)
+        }
+        
+        const transaction = result[0];
+        if (transaction.status_pembayaran != "pending") {
+            // If a transaction exists, return the existing token
+            res.json({ message: transaction });
+        }else{
+            const parameter = {
+                "transaction_details": {
+                    "order_id": transaction.transaksi_id.toString(), // Ensure order_id is a string
+                    "gross_amount": transaction.total_pembayaran
+                }
+            };
+  
+            const transactionTokenResponse = await snap.createTransaction(parameter);
+            if (transactionTokenResponse.token) {
+                return res.status(200).json({ message: "Pengambilan Token Berhasil", 
+                                              token: transactionTokenResponse.token, 
+                                              redirect_url: transactionTokenResponse.redirect_url})
+            } else {
+                res.status(500).json({ message: 'Gagal mendapatkan token' });
+            }
+        }
+      })
+      
+      
+  } catch (error) {
+      console.error('Error generating transaction token:', error);
+      res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+app.put('/transaction-done/:id', (req, res) => {
+  const pengguna_id = req.session.userId
+  const transaksi_id = req.params.id
+
+  if (!pengguna_id) {
+    return res.status(401).json({ message: "Login dulu dong!" });
+  }
+
+  database.query(`UPDATE transaction SET status_pembayaran = "berhasil" WHERE transaksi_id = ?`, [transaksi_id], (err, result) => {
+    if (err) {
+      console.log(err)
+      return res.status(500).json({ message:'Terjadi kesalahan pada server database'})
+    }
+    database.query('UPDATE user SET role = "member" WHERE pengguna_id =?', [pengguna_id], (err, result2) => {
+      if (err){
+        console.log(err)
+        return res.status(500).json({message: 'Terjadi kesalahan pada server database'})  
+      }
+      return res.status(200).json({ message:'Subscribe berhasil! Selamat anda sekarang adalah seorang member'})
+    })
+  })
+})

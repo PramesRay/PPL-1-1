@@ -1,0 +1,61 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript"
+            src="https://app.sandbox.midtrans.com/snap/snap.js"
+            data-client-key="<SB-Mid-client-0HDWzrhf04vtetey>"></script>
+  </head>
+  <body>
+    <button id="pay-button">Pay!</button>
+    <script type="text/javascript">
+      document.getElementById('pay-button').addEventListener('click', async function () {
+        try {
+          // Ganti dengan transaksi_id yang sesuai
+          const transaksiId = 14; // Contoh transaksi_id, ubah sesuai kebutuhan Anda
+          
+          // Meminta token transaksi dari backend
+          const response = await fetch(`/get-transaction-token/${transaksiId}`);
+          const data = await response.json();
+
+          if (data.token) {
+            // Memulai pembayaran dengan token yang diperoleh
+            window.snap.pay(data.token, {
+               onSuccess: async function(result) {
+                console.log('Payment success:', result);
+
+                // Memanggil API untuk memperbarui status transaksi
+                const updateResponse = await fetch(`/transaction-done/${transaksiId}`, {
+                  method: 'PUT'
+                });
+
+                if (updateResponse.ok) {
+                  const updateData = await updateResponse.json();
+                  alert(updateData.message);
+                } else {
+                  console.error('Failed to update transaction status');
+                }
+              },
+              onPending: function(result) {
+                console.log('Payment pending:', result);
+                alert('Payment pending, please complete the payment.');
+              },
+              onError: function(result) {
+                console.error('Payment failed:', result);
+                alert('Payment failed, please try again.');
+              },
+              onClose: function() {
+                console.log('Payment popup closed.');
+              }
+            });              
+          } else {
+            console.error('Failed to get transaction token:', data.message);
+            alert('Failed to get transaction token, please try again.');
+          }
+        } catch (error) {
+          console.error('Error occurred:', error);
+          alert('An error occurred, please try again.');
+        }
+      });
+    </script>
+  </body>
+</html>
