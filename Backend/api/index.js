@@ -112,11 +112,12 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/logout', (req, res) => {
-  if (err) {
-    return res.status(500).json({ message: 'Terjadi kesalahan pada server'})
-  } else {
-    req.session = null
-    return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: true})
+  try {
+    req.session = null;
+    return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: false });
+  } catch (err) {
+    console.error('Error during logout:', err);
+    return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
   }
 })
 
