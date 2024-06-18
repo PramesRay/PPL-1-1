@@ -40,10 +40,10 @@ database.connect((err) => {
 })
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '../views'));
 
 app.get('/', (req, res) => {
-  res.render('payment')
-  // res.status(200).json({message: "Berhasil masuk ke halaman utama"})
+  res.status(200).json({message: "Berhasil masuk ke halaman utama"})
 })
 
 app.get('/login', (req, res) => {
@@ -380,34 +380,6 @@ app.get('/visitor-count/:pengguna_id', (req, res) => {
   });
 });
 
-// API endpoint to create a new transaction
-app.post('/transactions', (req, res) => {
-  //const userId = req.session.userId
-  const {metode_pembayaran, pengguna_id, level_id } = req.body;
-  const tanggal_transaksi = moment().format('YYYY-MM-DD HH:mm:ss');
-  const status_pembayaran = "pending"
-
-  database.query("SELECT * from level where level_id = ?", [level_id], (err, result) => {
-    if (err) throw err;
-    const total_pembayaran = result[0].harga;
-
-    // Check if all required fields are provided
-    if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
-      return res.status(400).json({ total_pembayaran : total_pembayaran, tanggal_transaksi : tanggal_transaksi});
-    }
-
-    // Prepare the SQL query
-    const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran) VALUES (?, ?, ?, ?, ?, ?)';
-    const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran];
-
-    // Execute the SQL query
-    database.query(query, values, (err, results) => {
-      if (err) throw err;
-      res.status(201).json({ message: 'Transaction created successfully' });
-    });
-  }); 
-});
-
 app.get('/qrcode/:pengguna_id', (req, res) => {
   const pengguna_id = req.params.pengguna_id;
   console.log('Requested pengguna_id:', pengguna_id);
@@ -438,6 +410,34 @@ app.get('/qrcode/:pengguna_id', (req, res) => {
       res.send(`<img src="${url}">`);
     });
   });
+});
+
+// API endpoint to create a new transaction
+app.post('/transactions', (req, res) => {
+  //const userId = req.session.userId
+  const {metode_pembayaran, pengguna_id, level_id } = req.body;
+  const tanggal_transaksi = moment().format('YYYY-MM-DD HH:mm:ss');
+  const status_pembayaran = "pending"
+
+  database.query("SELECT * from level where level_id = ?", [level_id], (err, result) => {
+    if (err) throw err;
+    const total_pembayaran = result[0].harga;
+
+    // Check if all required fields are provided
+    if (!tanggal_transaksi || !total_pembayaran || !metode_pembayaran || !pengguna_id || !level_id) {
+      return res.status(400).json({ total_pembayaran : total_pembayaran, tanggal_transaksi : tanggal_transaksi});
+    }
+
+    // Prepare the SQL query
+    const query = 'INSERT INTO transaction (tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran) VALUES (?, ?, ?, ?, ?, ?)';
+    const values = [tanggal_transaksi, total_pembayaran, metode_pembayaran, pengguna_id, level_id, status_pembayaran];
+
+    // Execute the SQL query
+    database.query(query, values, (err, results) => {
+      if (err) throw err;
+      res.status(201).json({ message: 'Transaction created successfully' });
+    });
+  }); 
 });
 
 // Endpoint untuk merubah password
@@ -484,7 +484,6 @@ app.put('/update/password/:pengguna_id', async (req, res) => {
     });
   });
 });
-
 
 // Create Snap API instance
 let snap = new midtransClient.Snap({
@@ -564,6 +563,29 @@ app.put('/transaction-done/:id', (req, res) => {
     })
   })
 })
+
+app.delete('/transaction-failed/:id', (req, res) => {
+  const pengguna_id = req.session.userId;
+  const transaksi_id = req.params.id;
+
+  if (!pengguna_id) {
+    return res.status(401).json({ message: "Login dulu dong!" });
+  }
+
+  const query = 'DELETE FROM transaction WHERE transaksi_id = ?';
+  database.query(query, [transaksi_id], (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: 'Terjadi kesalahan pada server database' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+    }
+
+    return res.status(200).json({ message: 'Transaksi berhasil dihapus' });
+  });
+});
 
 app.listen(port, () => {
   console.log(`Fitivities listening on port ${port}`);
