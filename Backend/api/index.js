@@ -32,6 +32,7 @@ const database = mysql.createConnection({
 // 	saveUninitialized: true
 // }))
 
+app.use(cookieParser())
 app.use(
   session({
     name: 'session', // Nama cookie sesi
@@ -39,7 +40,6 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
   })
 );
-app.use(cookieParser())
 app.use(bodyParser.urlencoded({extended : true, limit:'50mb'}))
 app.use(bodyParser.json({limit:'50mb'}))
 app.use(express.json())
@@ -115,7 +115,7 @@ app.get('/logout', (req, res) => {
   try {
     req.session = null;
     res.clearCookie('session')
-    return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: false });
+    return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: false, cookiesession: req.session });
   } catch (err) {
     console.error('Error during logout:', err);
     return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
