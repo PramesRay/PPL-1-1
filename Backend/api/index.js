@@ -9,6 +9,8 @@ const QRCode = require('qrcode')
 const midtransClient = require('midtrans-client')
 const cors = require('cors')
 
+app.use(cors())
+
 const database = mysql.createConnection({
   host: "bkrzoo3jm5xsorunse88-mysql.services.clever-cloud.com",
   user: "u0q6rsyf8qzqp0pt",
