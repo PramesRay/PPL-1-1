@@ -2,12 +2,14 @@ const express = require('express')
 const mysql = require('mysql')
 const app = express()
 const port = 3001
-var session = require('express-session')
+// var session = require('express-session')
 var bodyParser = require('body-parser')
 const bcrypt = require('bcryptjs')
 const QRCode = require('qrcode')
 const midtransClient = require('midtrans-client')
 const cors = require('cors')
+const path = require('path')
+const cookieSession = require('cookie-session');
 
 const corsConfig = {
   origin: "*",
@@ -24,11 +26,19 @@ const database = mysql.createConnection({
   database: "bkrzoo3jm5xsorunse88",
 })
 
-app.use(session({
-	secret: 'secret',
-	resave: true,
-	saveUninitialized: true
-}))
+// app.use(session({
+// 	secret: 'secret',
+// 	resave: true,
+// 	saveUninitialized: true
+// }))
+
+app.use(
+  cookieSession({
+    name: 'session', // Nama cookie sesi
+    keys: ['rahasia_kunci'], // Kunci rahasia untuk mengenkripsi cookie
+    maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
+  })
+);
 
 app.use(bodyParser.urlencoded({extended : true}))
 app.use(bodyParser.json())
