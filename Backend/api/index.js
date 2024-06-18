@@ -9,6 +9,7 @@ const midtransClient = require('midtrans-client')
 const cors = require('cors')
 const path = require('path')
 const session = require('cookie-session');
+const cookieParser = require('cookie-parser')
 
 const corsConfig = {
   origin: "*",
@@ -38,7 +39,7 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
   })
 );
-
+app.use(cookieParser())
 app.use(bodyParser.urlencoded({extended : true, limit:'50mb'}))
 app.use(bodyParser.json({limit:'50mb'}))
 app.use(express.json())
