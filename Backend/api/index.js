@@ -40,7 +40,6 @@ database.connect((err) => {
 })
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '..', 'views'))
 
 app.get('/', (req, res) => {
   res.render('payment')
@@ -572,4 +571,3 @@ app.listen(port, () => {
 
 
 export default app
-//pancing push buat ubah branch
