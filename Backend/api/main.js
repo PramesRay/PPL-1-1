@@ -6,12 +6,13 @@ var session = require('express-session')
 var bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const QRCode = require('qrcode')
+const midtransClient = require('midtrans-client')
 
 const database = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "db_fitivities",
+  host: "bkrzoo3jm5xsorunse88-mysql.services.clever-cloud.com",
+  user: "u0q6rsyf8qzqp0pt",
+  password: "qoSjZvRHIMlZy0V2KfCX",
+  database: "bkrzoo3jm5xsorunse88",
 })
 
 app.use(session({
@@ -140,20 +141,22 @@ app.post('/register', async (req, res) => {
 
       // Insert the new user into the database
       database.query('INSERT INTO `user` (`email`, `username`, `password`, `nomor_telepon`, `role`) VALUES (?, ?, ?, ?, ?)', 
-      [email, username, hashedPassword, phone, role], (err, result) => {
+      [email, username, hashedPassword, phone, role], (err, res3) => {
         if (err) {
           console.error('Database insert error:', err)
           return res.status(500).json({ message:'Terjadi kesalahan pada server' })
         }
-
-        req.session.loggedin = true
-        req.session.username = username
-        req.session.userId = user.pengguna_id
-        req.session.role = user.role
-
-        res.redirect('/login')
+        
+        database.query('SELECT role FROM user WHERE pengguna_id = ?', [res3.insertId], (err, res4) => {
+          req.session.loggedin = true
+          req.session.username = username
+          req.session.userId = res3.insertId
+          req.session.role = res4[0].role
+        })
+        res.redirect('/')
         console.log('Registrasi berhasil dan data berhasil ditambah!')
       })
+
     })
   } catch (error) {
     console.error('Error during registration process:', error)
@@ -319,7 +322,7 @@ app.post('/check-in/:pengguna_id', (req, res) => {
     if (err) {
       return res.status(500).json({ message: 'Failed to check in', error: err.message });
     }
-    res.status(200).json({ message: 'Checked in successfully', check_in_out_id: this.lastID });
+    res.status(200).json({ message: 'Checked in successfully', check_in_out_id: this.lastID, check_in_status: true });
   });
 });
 
@@ -341,7 +344,7 @@ app.post('/check-out/:pengguna_id', (req, res) => {
     if (this.changes === 0) {
       return res.status(400).json({ message: 'No active check-in found for this user' });
     }
-    res.status(200).json({ message: 'Checked out successfully' });
+    res.status(200).json({ message: 'Checked out successfully', check_in_status: false });
   });
 });
 
@@ -428,11 +431,6 @@ app.get('/qrcode/:pengguna_id', (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
-
-
 // Endpoint untuk merubah password
 app.put('/update/password/:pengguna_id', async (req, res) => {
   const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
@@ -478,9 +476,6 @@ app.put('/update/password/:pengguna_id', async (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Fitivities listening on port ${port}`);
-});
 
 // Create Snap API instance
 let snap = new midtransClient.Snap({
@@ -488,7 +483,6 @@ let snap = new midtransClient.Snap({
   isProduction : false,
   serverKey : 'SB-Mid-server-R7IFInBtUj5BY4DIJAgjT35_'
 });
-
 
 app.get('/get-transaction-token/:id', async (req, res) => {
   const pengguna_id = req.session.userId; // Make sure user is logged in
@@ -561,3 +555,7 @@ app.put('/transaction-done/:id', (req, res) => {
     })
   })
 })
+
+app.listen(port, () => {
+  console.log(`Fitivities listening on port ${port}`);
+});
