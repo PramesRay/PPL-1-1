@@ -7,6 +7,7 @@ var bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const QRCode = require('qrcode')
 const midtransClient = require('midtrans-client')
+const cors = require('cors')
 
 const database = mysql.createConnection({
   host: "bkrzoo3jm5xsorunse88-mysql.services.clever-cloud.com",
