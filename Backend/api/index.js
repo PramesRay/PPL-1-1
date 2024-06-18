@@ -1,7 +1,7 @@
 const express = require('express')
 const mysql = require('mysql')
 const app = express()
-const port = 3000
+const port = 3001
 var session = require('express-session')
 var bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
@@ -560,4 +560,6 @@ app.listen(port, () => {
   console.log(`Fitivities listening on port ${port}`);
 });
 
+
+export default app
 //pancing push buat ubah branch
