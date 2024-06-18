@@ -114,7 +114,7 @@ app.get('/logout', (req, res) => {
   if (err) {
     return res.status(500).json({ message: 'Terjadi kesalahan pada server'})
   } else {
-    res.session = null
+    req.session = null
     return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: true})
   }
 })
