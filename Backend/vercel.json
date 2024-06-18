@@ -1,6 +1,6 @@
 {
     "version":2,
-    "rewrite":[{
+    "rewrites":[{
         "source":"/(.*)",
         "destination":"/api"
     }]
