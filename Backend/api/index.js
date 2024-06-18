@@ -2,14 +2,13 @@ const express = require('express')
 const mysql = require('mysql')
 const app = express()
 const port = 3001
-// var session = require('express-session')
 var bodyParser = require('body-parser')
 const bcrypt = require('bcryptjs')
 const QRCode = require('qrcode')
 const midtransClient = require('midtrans-client')
 const cors = require('cors')
 const path = require('path')
-const cookieSession = require('cookie-session');
+const session = require('cookie-session');
 
 const corsConfig = {
   origin: "*",
@@ -33,15 +32,15 @@ const database = mysql.createConnection({
 // }))
 
 app.use(
-  cookieSession({
+  session({
     name: 'session', // Nama cookie sesi
-    keys: ['rahasia_kunci'], // Kunci rahasia untuk mengenkripsi cookie
+    keys: ['secret'], // Kunci rahasia untuk mengenkripsi cookie
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
   })
 );
 
-app.use(bodyParser.urlencoded({extended : true}))
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended : true, limit:'50mb'}))
+app.use(bodyParser.json({limit:'50mb'}))
 app.use(express.json())
 
 database.connect((err) => {
@@ -74,8 +73,8 @@ app.post('/login', async (req, res) => {
   const loginStatus = req.session.loggedin
   
   if (loginStatus) {
-    console.log("Anda telah login")
-    return res.redirect('/')
+    
+    return res.status(400).json({ message: 'Anda sudah login!'})
   }
 
   console.log('login attempt:', { username, password }) //testing aja
@@ -88,7 +87,7 @@ app.post('/login', async (req, res) => {
     }
 
     if (result.length === 0) {
-      return res.status(400).json({ message:'Username tidak ditemukan' })
+      return res.status(400).json({ message:'Username tidak ditemukan'})
     }
 
     const user = result[0]
@@ -107,19 +106,17 @@ app.post('/login', async (req, res) => {
     req.session.username = user.username
     req.session.userId = user.pengguna_id
     req.session.role = user.role
-    console.log('Login berhasil! kamu seorang ', req.session.role)
-    return res.redirect('/')
+    res.status(200).json({message: `Login berhasil! kamu seorang ${req.session.role}`, loginStatus: true, userId: req.session.userId})
   })
 })
 
 app.get('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      console.log(err)
-    } else {
-      res.redirect('/')
-    }
-  })
+  if (err) {
+    return res.status(500).json({ message: 'Terjadi kesalahan pada server'})
+  } else {
+    res.session = null
+    return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: true})
+  }
 })
 
 app.post('/register', async (req, res) => {
@@ -301,7 +298,7 @@ app.put('/update/profile/:id', (req, res) => {
 
 // Endpoint untuk mendapatkan data pengguna di pengaturan akun
 app.get('/get/user/:pengguna_id', (req, res) => {
-  const pengguna_Id = req.session.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+  const pengguna_Id = req.session.userId; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
 
   if (!pengguna_Id) {
     return res.status(401).json({ message: "Login dulu dong!" });
