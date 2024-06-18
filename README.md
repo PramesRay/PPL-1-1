@@ -18,7 +18,7 @@ In this project, we build a software based on a website that is engaged in sport
 
 ## Link Figma
 
-https://www.figma.com/design/1t6SBAh1cTJw3sDOhGBKIN/Projek-Gym---PPL-I?node-id=0-1&t=wsAcpcILflX2R6kG-1
+https://www.figma.com/proto/1t6SBAh1cTJw3sDOhGBKIN/Projek-Gym---PPL-I?node-id=127-750&t=Je32vEwrbV0WANT6-0&scaling=scale-down&page-id=127%3A644&starting-point-node-id=127%3A750
 
 ## Running The App
 
