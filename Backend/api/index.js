@@ -14,6 +14,7 @@ const moment = require('moment')
 
 const corsConfig = {
   origin: "*",
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credential: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 }
