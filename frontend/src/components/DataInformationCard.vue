@@ -1,12 +1,45 @@
 <script setup>
+import axios from 'axios';
+import { isLoggedIn } from '@/global/globalState';
+import { useRouter } from 'vue-router';
+import { onMounted } from 'vue';
+import { inject } from 'vue';
+
+const router = useRouter()
+
 const extendCard = () => {
     document.getElementById('password-section').classList.toggle('hidden');
     document.getElementById('change-password').classList.add('hidden');
 }
+
+const logoutHandler = async () => {
+    try {
+        const response = await axios.get('https://ppl-1-1.vercel.app/logout')
+        alert(response.data.message)
+        isLoggedIn.value = false;
+        localStorage.removeItem('isLoggedIn');
+        router.push('/')
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const fetchDataUser = async () => {
+    try {
+        const response = await axios.get('https://ppl-1-1.vercel.app/get/user')
+        console.log(response.data)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+onMounted(() => {
+    fetchDataUser()
+})
 </script>
 
 <template>
-    <div class="container w-full m-auto mt-5 mb-20 px-5 lg:px-20">
+    <div class="container w-full m-auto mt-5 mb-20 px-5 lg:px-20 flex flex-col">
         <div class="bg-accent rounded-xl py-5 lg:py-10 px-5 lg:px-10 w-full">
             <form class="flex flex-col gap-10" action="">
                 <div
@@ -82,5 +115,8 @@ const extendCard = () => {
                 </div>
             </form>
         </div>
+
+        <button @click.prevent="logoutHandler"
+            class="rounded px-3 py-1 self-end text-xl font-medium mt-5 outline outline-[#008080] text-[#008080] hover:scale-95 duration-75">Logout</button>
     </div>
 </template>

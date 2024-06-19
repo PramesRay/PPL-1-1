@@ -9,7 +9,7 @@
                 Bergabunglah dengan gym kami dan dapatkan whey protein GRATIS untuk memaksimalkan setiap langkah
                 perjalanan kebugaran Anda.
             </p>
-            <p class="text-xl font-normal hover:underline cursor-pointer">Dapatkan sekarang!</p>
+            <p class="text-xl font-normal">Dapatkan sekarang!</p>
         </div>
     </div>
 </template>

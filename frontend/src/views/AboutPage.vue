@@ -3,6 +3,7 @@ import AppBar from '../components/AppBar.vue';
 import CheckInOutBar from '../components/CheckInOutBar.vue';
 import AboutSection from '../components/AboutSection.vue';
 import ReviewSection from '../components/ReviewSection.vue';
+import AddReviewSection from '../components/AddReviewSection.vue';
 </script>
 
 <template>
@@ -16,4 +17,5 @@ import ReviewSection from '../components/ReviewSection.vue';
     <CheckInOutBar />
     <AboutSection />
     <ReviewSection />
+    <AddReviewSection />
 </template>

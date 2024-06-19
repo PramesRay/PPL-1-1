@@ -1,8 +1,6 @@
 <script setup>
-import { ref } from 'vue';
 import { RouterLink } from 'vue-router'
-
-const isLoggedIn = ref(false);
+import { isLoggedIn } from '@/global/globalState';
 
 const loginPop = () => {
     const loginBar = document.getElementById('login-bar');
@@ -35,7 +33,7 @@ const hamburgerPop = () => {
 <template>
     <div class="flex gap-3 items-center justify-between container py-3 lg:py-5 mx-auto relative px-3 md:px-5 lg:px-10">
         <div class="flex items-center">
-            <svg class="w-[48px] h-[48px]" xmlns="http://www.w3.org/2000/svg" width="" height="" viewBox="0 0 48 48">
+            <svg class="w-[48px] h-[48px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                 <g fill="#fafafa">
                     <path
                         d="M19 32V16h-3v16zm-5-3V19h-3v4h-1v2h1v4zm15-13v16h3V16zm5 13h3v-4h1v-2h-1v-4h-3zm-13-4h6v-2h-6z" />
@@ -44,8 +42,9 @@ const hamburgerPop = () => {
                         clip-rule="evenodd" />
                 </g>
             </svg>
-            <h1 class="text-center text-2xl lg:text-3xl font-primary font-bold text-secondary cursor-pointer"><span
-                    id="home-button">Fitivities</span></h1>
+            <router-link to="/"
+                class="text-center text-2xl lg:text-3xl font-primary font-bold text-secondary cursor-pointer"><span
+                    id="home-button">Fitivities</span></router-link>
         </div>
 
         <ul id="hamburger-menu"

@@ -6,6 +6,7 @@ import PromoSection from '../components/PromoSection.vue';
 import MembershipSection from '../components/MembershipSection.vue';
 import ReminderSection from '../components/ReminderSection.vue';
 import ReviewSection from '../components/ReviewSection.vue';
+import AddReviewSection from '../components/AddReviewSection.vue';
 </script>
 
 <template>
@@ -18,5 +19,6 @@ import ReviewSection from '../components/ReviewSection.vue';
     <PromoSection />
     <MembershipSection />
     <ReviewSection />
+    <AddReviewSection />
     <ReminderSection />
 </template>
