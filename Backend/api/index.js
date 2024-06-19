@@ -18,7 +18,7 @@ const corsConfig = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 }
-app.options("", cors(corsConfig))
+app.options("*", cors(corsConfig))
 app.use(cors(corsConfig))
 
 const database = mysql.createConnection({
@@ -114,7 +114,6 @@ app.post('/login', async (req, res) => {
     req.session.username = user.username
     req.session.userId = user.pengguna_id
     req.session.role = user.role
-    // res.status(200).json({message: `Login berhasil! kamu seorang ${req.session.role}`, loginStatus: req.session.loggedin, userId: req.session.userId})
     res.status(200).json(req.session)
   })
 })
@@ -182,8 +181,8 @@ app.post('/register', async (req, res) => {
           req.session.userId = res3.insertId
           req.session.role = res4[0].role
         })
-        res.redirect('/')
-        console.log('Registrasi berhasil dan data berhasil ditambah!')
+        // res.redirect('/')
+        return res.status(200).json({message:'Registrasi berhasil dan data berhasil ditambah!', userId:req.session.userId, loginStatus:req.session.loggedin})
       })
 
     })
@@ -195,15 +194,15 @@ app.post('/register', async (req, res) => {
 
 // Endpoint untuk menambahkan review
 app.post('/post/review', async (req, res) => {
-  const pengguna_id = req.session?.userId
+  const pengguna_id = req.session.userId
   const { deskripsi_review, rating } = req.body;
 
   if (!pengguna_id) {
-    return res.status(401).json({ message: "Login dulu dong!" });
+    return res.status(401).json({ message: "Login dulu dong!", userId:pengguna_id });
   }
 
   if (!deskripsi_review || !rating || !pengguna_id) {
-    return res.status(400).json({ message:'Missing required fields' })
+    return res.status(400).json({ message:`Data dari ${pengguna_id} tidak seharusnya kosong` })
   }
 
   // Menambahkan review ke database
@@ -211,7 +210,7 @@ app.post('/post/review', async (req, res) => {
     [deskripsi_review, rating, pengguna_id], (err, results) => {
       if (err) {
         console.error('Database insert error:', err);
-        return res.status(500).json({ message:'Failed to add review' })
+        return res.status(500).json({ message:'Gagal menambahkan review' })
       }
       return res.status(201).json({ review_id: results.insertId, message: 'Review berhasil ditambahkan' });
     });
@@ -228,15 +227,15 @@ app.get('/get/review', (req, res) => {
   });
 });
 
-app.put('/update/profile/:id', (req, res) => {
-  const userId = req.id //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+app.put('/update/profile/', (req, res) => {
+  const pengguna_id = req.session.pengguna_id
   const { nama, email, username, nomor_telepon, alamat, profile} = req.body;
 
-  if (!userId) {
+  if (!pengguna_id) {
     return res.status(401).json({ message: "Login dulu dong!" });
   }
 
-  if (userId) {
+  if (pengguna_id) {
     // Check if email already exists
     database.query('SELECT * FROM user WHERE email = ?', [email], async (err, res1) => {
       if (err) {
@@ -244,7 +243,7 @@ app.put('/update/profile/:id', (req, res) => {
         return res.status(500).json({ message:'Terjadi kesalahan pada server' })
       }
 
-      if (res1.length > 0 && res1[0].pengguna_id != userId) {
+      if (res1.length > 0 && res1[0].pengguna_id != pengguna_id) {
         return res.status(400).json({ message:'Email sudah terdaftar' })
       }
 
@@ -255,7 +254,7 @@ app.put('/update/profile/:id', (req, res) => {
           return res.status(500).json({ message:'Terjadi kesalahan pada server' })
         }
 
-        if (res2.length > 0 && res2[0].pengguna_id != userId) {
+        if (res2.length > 0 && res2[0].pengguna_id != pengguna_id) {
           return res.status(400).json({ message:'Nomor Handphone sudah terdaftar' })
         }
 
@@ -266,12 +265,12 @@ app.put('/update/profile/:id', (req, res) => {
             return res.status(500).json({ message:'Terjadi kesalahan pada server' })
           }
 
-          if (res3.length > 0 && res3[0].pengguna_id != userId) {
+          if (res3.length > 0 && res3[0].pengguna_id != pengguna_id) {
             return res.status(400).json({ message:'username sudah terdaftar' })
           }
 
           // Mengambil data profile yang lama
-          database.query('SELECT * FROM user WHERE pengguna_id = ?', [userId], async (err, res4) => {
+          database.query('SELECT * FROM user WHERE pengguna_id = ?', [pengguna_id], async (err, res4) => {
             if (err) {
               console.error('Database query error:', err)
               return res.status(500).json({ message:'Terjadi kesalahan pada server' })
@@ -310,8 +309,8 @@ app.put('/update/profile/:id', (req, res) => {
 });
 
 // Endpoint untuk mendapatkan data pengguna di pengaturan akun
-app.get('/get/user/:pengguna_id', (req, res) => {
-  const pengguna_Id = req.session.userId; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+app.get('/get/user/', (req, res) => {
+  const pengguna_Id = req.session.userId
 
   if (!pengguna_Id) {
     return res.status(401).json({ message: "Login dulu dong!" });
@@ -337,8 +336,8 @@ app.get('/get/user/:pengguna_id', (req, res) => {
 })
 
 // Check-in route
-app.post('/check-in/:pengguna_id', (req, res) => {
-  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+app.post('/check-in/', (req, res) => {
+  const pengguna_id = req.session.userId
   
   if (!pengguna_id) {
     return res.status(400).json({ message: "Login dulu dong!" });
@@ -356,7 +355,7 @@ app.post('/check-in/:pengguna_id', (req, res) => {
 });
 
 // Check-out route
-app.post('/check-out/:pengguna_id', (req, res) => {
+app.post('/check-out/', (req, res) => {
   const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
   
   if (!pengguna_id) {
@@ -378,8 +377,8 @@ app.post('/check-out/:pengguna_id', (req, res) => {
 });
 
 // Get visitor count
-app.get('/visitor-count/:pengguna_id', (req, res) => {
-  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+app.get('/visitor-count/', (req, res) => {
+  const pengguna_id = req.session.userId
   
   if (!pengguna_id) {
     return res.status(400).json({ message: "Login dulu dong!" });
@@ -400,8 +399,8 @@ app.get('/visitor-count/:pengguna_id', (req, res) => {
   });
 });
 
-app.get('/qrcode/:pengguna_id', (req, res) => {
-  const pengguna_id = req.params.pengguna_id;
+app.get('/qrcode/', (req, res) => {
+  const pengguna_id = req.session.userId
   console.log('Requested pengguna_id:', pengguna_id);
 
   // Lakukan query ke database untuk memeriksa keberadaan pengguna_id
@@ -420,7 +419,7 @@ app.get('/qrcode/:pengguna_id', (req, res) => {
     }
 
     // Jika pengguna_id valid, hasilkan QR Code
-    QRCode.toDataURL(`http://example.com/user/${pengguna_id}`, (err, url) => {
+    QRCode.toDataURL(`${pengguna_id}`, (err, url) => {
       if (err) {
         console.error('Failed to generate QR Code:', err);
         return res.status(500).send('Gagal menghasilkan QR Code');
@@ -434,8 +433,8 @@ app.get('/qrcode/:pengguna_id', (req, res) => {
 
 // API endpoint to create a new transaction
 app.post('/transactions', (req, res) => {
-  //const userId = req.session.userId
-  const {metode_pembayaran, pengguna_id, level_id } = req.body;
+  const pengguna_id = req.session.userId
+  const {metode_pembayaran, level_id } = req.body;
   const tanggal_transaksi = moment().format('YYYY-MM-DD HH:mm:ss');
   const status_pembayaran = "pending"
 
@@ -455,14 +454,18 @@ app.post('/transactions', (req, res) => {
     // Execute the SQL query
     database.query(query, values, (err, results) => {
       if (err) throw err;
-      res.status(201).json({ message: 'Transaction created successfully' });
-    });
-  }); 
-});
+
+      database.query(`SELECT transaksi_id FROM transaction WHERE pengguna_id = ? AND status = 'pending' ORDER BY transaksi_id DESC`, [pengguna_id], (err, results) =>  {
+        if (err) throw err;
+        res.status(201).json({ message: 'Transaction created successfully', transaksi_id:result[0]})
+      })
+    }) 
+  });
+}); 
 
 // Endpoint untuk merubah password
-app.put('/update/password/:pengguna_id', async (req, res) => {
-  const pengguna_id = req.pengguna_id; //untuk keperluan testing sementara, nanti diganti dengan ```req.session.userId```
+app.put('/update/password/', async (req, res) => {
+  const pengguna_id = req.session.userId
   const { passwordLama, passwordBaru, conPasswordBaru } = req.body;
 
   if (!pengguna_id) {
@@ -513,7 +516,7 @@ let snap = new midtransClient.Snap({
 });
 
 app.get('/get-transaction-token/:id', async (req, res) => {
-  const pengguna_id = req.session.userId; // Make sure user is logged in
+  const pengguna_id = req.session.userId; 
   const transaksi_id = req.params.id; 
   
   if (!pengguna_id) {
