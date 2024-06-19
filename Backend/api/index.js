@@ -10,6 +10,7 @@ const cors = require('cors')
 const path = require('path')
 const session = require('cookie-session');
 const cookieParser = require('cookie-parser')
+const moment = require('moment')
 
 const corsConfig = {
   origin: "*",
@@ -33,6 +34,7 @@ const database = mysql.createConnection({
 // }))
 
 app.use(cookieParser())
+
 app.use(
   session({
     name: 'session', // Nama cookie sesi
@@ -40,6 +42,7 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
   })
 );
+
 app.use(bodyParser.urlencoded({extended : true, limit:'50mb'}))
 app.use(bodyParser.json({limit:'50mb'}))
 app.use(express.json())
@@ -53,6 +56,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 
 app.get('/', (req, res) => {
+  res.render('payment')
   res.status(200).json({message: "Berhasil masuk ke halaman utama"})
 })
 
@@ -107,7 +111,8 @@ app.post('/login', async (req, res) => {
     req.session.username = user.username
     req.session.userId = user.pengguna_id
     req.session.role = user.role
-    res.status(200).json({message: `Login berhasil! kamu seorang ${req.session.role}`, loginStatus: true, userId: req.session.userId})
+    // res.status(200).json({message: `Login berhasil! kamu seorang ${req.session.role}`, loginStatus: req.session.loggedin, userId: req.session.userId})
+    res.status(200).json(req.session)
   })
 })
 
@@ -457,41 +462,41 @@ app.put('/update/password/:pengguna_id', async (req, res) => {
 
   if (!pengguna_id) {
     return res.status(401).json({ message: "Login dulu dong!" });
-    }
+  }
     
-    database.query('SELECT password FROM user WHERE pengguna_id = ?', [pengguna_id], async (err, results) => {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
-        }
-        
-        if (results.length === 0) {
-          return res.status(404).json({ message: 'User not found' });
-          }
-          
-          const user = results[0];
-
-          // Periksa apakah password lama cocok
-    const isMatch = await bcrypt.compare(passwordLama, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Old password is incorrect' });
-      }
-
-    // Check if password and confirm password match
-    if (passwordBaru !== conPasswordBaru) {
-      return res.status(400).json({ message:'Password dan konfirmasi password tidak cocok' })
+  database.query('SELECT password FROM user WHERE pengguna_id = ?', [pengguna_id], async (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: 'Internal server error' });
       }
       
-    // Hash password baru
-    const hashedNewPassword = await bcrypt.hash(passwordBaru, 10);
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+        
+      const user = results[0];
 
-    // Update password di database
-    database.query('UPDATE user SET password = ? WHERE pengguna_id = ?', [hashedNewPassword, pengguna_id], (err, results) => {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error' });
+      // Periksa apakah password lama cocok
+      const isMatch = await bcrypt.compare(passwordLama, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Old password is incorrect' });
+      }
+
+      // Check if password and confirm password match
+      if (passwordBaru !== conPasswordBaru) {
+        return res.status(400).json({ message:'Password dan konfirmasi password tidak cocok' })
+      }
+        
+      // Hash password baru
+      const hashedNewPassword = await bcrypt.hash(passwordBaru, 10);
+
+      // Update password di database
+      database.query('UPDATE user SET password = ? WHERE pengguna_id = ?', [hashedNewPassword, pengguna_id], (err, results) => {
+        if (err) {
+          return res.status(500).json({ message: 'Internal server error' });
         }
 
         res.status(200).json({ message: 'Password updated successfully' });
-    });
+      });
   });
 });
 
@@ -602,4 +607,4 @@ app.listen(port, () => {
 });
 
 
-export default app
+// export default app
