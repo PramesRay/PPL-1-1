@@ -39,7 +39,7 @@ app.use(
   session({
     name: 'session', // Nama cookie sesi
     keys: ['secret'], // Kunci rahasia untuk mengenkripsi cookie
-    maxAge: 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
+    maxAge: 1 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
     secure: true, // Ubah menjadi true jika Anda menggunakan HTTPS
     // httpOnly: true // Tambahkan opsi ini untuk meningkatkan keamanan
   })
