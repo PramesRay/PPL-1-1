@@ -120,7 +120,7 @@ app.post('/login', async (req, res) => {
 
 app.get('/logout', (req, res) => {
   try {
-    req.session = null;
+    // req.session = null;
     req.session.destroy()
     res.clearCookie('session')
     return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: false, cookiesession: req.session });
