@@ -40,6 +40,8 @@ app.use(
     name: 'session', // Nama cookie sesi
     keys: ['secret'], // Kunci rahasia untuk mengenkripsi cookie
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
+    secure: false, // Ubah menjadi true jika Anda menggunakan HTTPS
+    // httpOnly: true // Tambahkan opsi ini untuk meningkatkan keamanan
   })
 );
 
@@ -119,6 +121,7 @@ app.post('/login', async (req, res) => {
 app.get('/logout', (req, res) => {
   try {
     req.session = null;
+    req.session.destroy()
     res.clearCookie('session')
     return res.status(200).json({ message: 'Anda berhasil logout', loginStatus: false, cookiesession: req.session });
   } catch (err) {
