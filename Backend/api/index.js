@@ -525,43 +525,59 @@ app.get('/get-transaction-token/:id', async (req, res) => {
   }
   
   try {
-      database.query("SELECT * FROM transaction WHERE transaksi_id = ? AND pengguna_id = ?", [transaksi_id, pengguna_id], async (err, result) => {
-        if (err) {
-          console.log(err)
-          return res.status(500).json({ message:'Terjadi kesalahan pada server'})
-        } 
-        
-        if (result.length === 0) {
-          console.log(transaksi_id)
-        }
-        
-        const transaction = result[0];
-        if (transaction.status_pembayaran != "pending") {
-            // If a transaction exists, return the existing token
-            res.json({ message: transaction });
-        }else{
-            const parameter = {
-                "transaction_details": {
-                    "order_id": transaction.transaksi_id.toString(), // Ensure order_id is a string
-                    "gross_amount": transaction.total_pembayaran
-                }
-            };
-  
-            const transactionTokenResponse = await snap.createTransaction(parameter);
-            if (transactionTokenResponse.token) {
-                return res.status(200).json({ message: "Pengambilan Token Berhasil", 
-                                              token: transactionTokenResponse.token, 
-                                              redirect_url: transactionTokenResponse.redirect_url})
-            } else {
-                res.status(500).json({ message: 'Gagal mendapatkan token' });
-            }
-        }
-      })
+    database.query("SELECT * FROM transaction WHERE transaksi_id = ? AND pengguna_id = ?", [transaksi_id, pengguna_id], async (err, result) => {
+      if (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+      } 
       
+      if (result.length === 0) {
+        console.log(transaksi_id);
+        return res.status(404).json({ message: 'Transaksi tidak ditemukan.' });
+      }
       
+      const transaction = result[0];
+      if (transaction.status_pembayaran !== "pending") {
+        // Jika status pembayaran sudah tidak pending, kirimkan kembali token jika tersedia
+        if (req.session.transactionToken) {
+          return res.status(200).json({ 
+            message: "Pengambilan Token Berhasil", 
+            token: req.session.transactionToken.token, 
+            redirect_url: req.session.transactionToken.redirect_url
+          });
+        } else {
+          return res.status(404).json({ message: 'Token transaksi tidak ditemukan.' });
+        }
+      } else {
+        const parameter = {
+          "transaction_details": {
+            "order_id": transaction.transaksi_id.toString(), // Pastikan order_id adalah string
+            "gross_amount": transaction.total_pembayaran
+          }
+        };
+        
+        const transactionTokenResponse = await snap.createTransaction(parameter);
+        if (transactionTokenResponse.token) {
+          // Simpan token di sesi untuk digunakan kembali
+          req.session.transactionToken = {
+            token: transactionTokenResponse.token,
+            redirect_url: transactionTokenResponse.redirect_url
+          };
+          
+          return res.status(200).json({ 
+            message: "Pengambilan Token Berhasil", 
+            token: transactionTokenResponse.token, 
+            redirect_url: transactionTokenResponse.redirect_url
+          });
+        } else {
+          res.status(500).json({ message: 'Gagal mendapatkan token' });
+        }
+      }
+    });
+    
   } catch (error) {
-      console.error('Error generating transaction token:', error);
-      res.status(500).json({ error: 'Internal server error.' });
+    console.error('Error generating transaction token:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
