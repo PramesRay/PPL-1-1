@@ -14,7 +14,7 @@ const moment = require('moment')
 
 const corsConfig = {
   origin: "*",
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  // allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 }
@@ -34,7 +34,7 @@ const database = mysql.createConnection({
 // 	saveUninitialized: true
 // }))
 
-app.use(cookieParser())
+app.use(cookieParser('secret'))
 
 app.use(
   session({
@@ -42,12 +42,13 @@ app.use(
     keys: ['secret'], // Kunci rahasia untuk mengenkripsi cookie
     maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
     secure: false, // Ubah menjadi true jika Anda menggunakan HTTPS
-    sameSite: 'None'
+    sameSite: 'lax'
   })
 );
 
-app.use(bodyParser.urlencoded({extended : true, limit:'50mb'}))
-app.use(bodyParser.json({limit:'50mb'}))
+app.use(bodyParser.urlencoded({extended : true }))
+app.use(bodyParser.json({}))
+
 app.use(express.json())
 
 database.connect((err) => {
