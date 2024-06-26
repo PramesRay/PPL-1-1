@@ -11,9 +11,11 @@ const path = require('path')
 const session = require('cookie-session');
 const cookieParser = require('cookie-parser')
 const moment = require('moment')
+const nodemailer = require('nodemailer')
+const crypto = require('crypto');
 
 const corsConfig = {
-  origin: "*",
+  origin: "*", //ganti ketika ingin digunakan oleh FE
   // allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -38,10 +40,10 @@ app.use(cookieParser('secret'))
 
 app.use(
   session({
-    name: 'session', // Nama cookie sesi
-    keys: ['secret'], // Kunci rahasia untuk mengenkripsi cookie
-    maxAge: 24 * 60 * 60 * 1000, // Masa berlaku cookie sesi (24 jam dalam contoh ini)
-    secure: false, // Ubah menjadi true jika Anda menggunakan HTTPS
+    name: 'session',
+    keys: ['secret'],
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: false,
     sameSite: 'lax'
   })
 );
@@ -58,6 +60,16 @@ database.connect((err) => {
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
+
+// Konfigurasi transporter email
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: "hermanu.widyatama11@gmail.com",
+    pass: "ieac wrlf foqy iyjo",
+  },
+});
+
 
 app.get('/', (req, res) => {
   res.render('payment')
@@ -101,6 +113,10 @@ app.post('/login', async (req, res) => {
 
     const user = result[0]
     console.log('User found:', user)
+
+    if (!user.is_confirmed) {
+      return res.status(400).json({ message:'Silakan verifikasi email Anda terlebih dahulu' });
+    }
 
     // Compare hashed password
     const match = await bcrypt.compare(password, user.password)
@@ -152,11 +168,11 @@ app.post('/register', async (req, res) => {
       database.query('SELECT * FROM user WHERE nomor_telepon = ?', [phone], async (err, res2) => {
         if (err) {
           console.error('Database query error:', err)
-          return res.status(500).json({ message:'Terjadi kesalahan pada server' })
+          return res.json({ message:'Terjadi kesalahan pada server' })
         }
         
         if (res2.length > 0) {
-          return res.status(400).json({ message:'Nomor Handphone sudah terdaftar' })
+          return res.json({ message:'Nomor Handphone sudah terdaftar' })
         }
       })
 
@@ -168,22 +184,41 @@ app.post('/register', async (req, res) => {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10)
 
+      // Generate token verifikasi
+      const token = crypto.randomBytes(20).toString('hex');
+
       // Insert the new user into the database
-      database.query('INSERT INTO `user` (`email`, `username`, `password`, `nomor_telepon`, `role`) VALUES (?, ?, ?, ?, ?)', 
-      [email, username, hashedPassword, phone, role], (err, res3) => {
+      database.query('INSERT INTO `user` (`email`, `username`, `password`, `nomor_telepon`, `role`, `confirmation_token`, `is_confirmed`) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+      [email, username, hashedPassword, phone, role, token, false], async (err, res3) => {
         if (err) {
           console.error('Database insert error:', err)
-          return res.status(500).json({ message:'Terjadi kesalahan pada server' })
+          return res.json({ message:'Terjadi kesalahan pada server' })
         }
-        
-        database.query('SELECT role FROM user WHERE pengguna_id = ?', [res3.insertId], (err, res4) => {
-          req.session.loggedin = true
-          req.session.username = username
-          req.session.userId = res3.insertId
-          req.session.role = res4[0].role
-        })
-        // res.redirect('/')
-        return res.status(200).json({message:'Registrasi berhasil dan data berhasil ditambah!', userId:req.session.userId, loginStatus:req.session.loggedin})
+
+        // Kirim email verifikasi
+        const verificationUrl = `http://${req.headers.host}/verify/${token}`;
+        const mailOptions = {
+          from: "hermanu.widyatama11@gmail.com",
+          to: email,
+          subject: 'Verifikasi Email Anda',
+          text: `Klik link berikut untuk memverifikasi email Anda: ${verificationUrl}`
+        };
+
+        try {
+          await transporter.sendMail(mailOptions);
+          database.query('SELECT role FROM user WHERE pengguna_id = ?', [res3.insertId], (err, res4) => {
+            req.session.loggedin = true
+            req.session.username = username
+            req.session.userId = res3.insertId
+            req.session.role = res4[0].role
+          })
+          return res.status(200).json({message:'Registrasi berhasil. Silakan cek email Anda untuk verifikasi.'});
+        } catch (error) {
+          console.error('Error sending email:', error);
+          return res.status(500).json({message:'Gagal mengirim email verifikasi'});
+        }
+        // // res.redirect('/')
+        // return res.status(200).json({message:'Registrasi berhasil dan data berhasil ditambah!', session:req.session})
       })
 
     })
@@ -192,6 +227,23 @@ app.post('/register', async (req, res) => {
     res.status(500).json({ message:'Terjadi kesalahan pada server' })
   }
 })
+
+app.get('/verify/:token', (req, res) => {
+  const { token } = req.params;
+
+  database.query('UPDATE user SET is_confirmed = true WHERE confirmation_token = ?', [token], (err, result) => {
+    if (err) {
+      console.error('Database update error:', err);
+      return res.status(500).send('Terjadi kesalahan saat verifikasi');
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(400).send('Token verifikasi tidak valid');
+    }
+
+    res.send('Email berhasil diverifikasi. Anda sekarang dapat login.');
+  });
+});
 
 // Endpoint untuk menambahkan review
 app.post('/post/review', async (req, res) => {
