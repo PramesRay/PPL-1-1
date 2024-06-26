@@ -218,7 +218,7 @@ app.post('/post/review', async (req, res) => {
 
 // Endpoint untuk mendapatkan semua ulasan yang diurutkan berdasarkan review_id secara terbaru
 app.get('/get/review', (req, res) => {
-  database.query('SELECT * FROM review ORDER BY review_id DESC', (err, rows) => {
+  database.query('SELECT user.nama, review.deskripsi_review, review.rating FROM review JOIN user ON review.pengguna_id = user.pengguna_id ORDER BY review.review_id DESC', (err, rows) => {
     if (err) {
       console.error('Database query error:', err);
       return res.status(500).json({ message:'Failed to retrieve review' })
