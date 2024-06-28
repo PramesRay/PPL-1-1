@@ -41,9 +41,16 @@ const paymentPopUp = async (level_id) => {
 
                     if (updateResponse.ok) {
                         const updateData = await updateResponse.json();
-                        Swal.fire(updateData.message);
+                        Swal.fire({
+                            position: "center",
+                            icon: "success",
+                            title: updateData.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
 
                         localStorage.setItem('userRole', 'member')
+                        setTimeout(() => window.location.reload(), 1500)
                     } else {
                         console.error('Failed to update transaction status');
                     }
