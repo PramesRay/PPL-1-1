@@ -71,6 +71,7 @@ const paymentPopUp = async (level_id) => {
 }
 
 const loggedin = localStorage.getItem('session')
+const userRole = localStorage.getItem('userRole')
 </script>
 
 <template>
@@ -94,7 +95,7 @@ const loggedin = localStorage.getItem('session')
                         <li>Penggunaan sauna</li>
                         <li>Diskon 10% pembelian suplemen</li>
                     </ul>
-                    <button @click.prevent="paymentPopUp(1)" v-if="loggedin"
+                    <button @click.prevent="paymentPopUp(1)" v-if="loggedin && userRole !== 'member'"
                         class="bg-accent text-secondary px-5 py-2 font-bold mx-auto rounded hover:scale-95 duration-75 invisible group-hover:visible">
                         Checkout
                     </button>
@@ -121,7 +122,7 @@ const loggedin = localStorage.getItem('session')
                         <li>1 sesi evaluasi kesehatan dan kebugaran</li>
                         <li>Prioritas booking kelas dan Personal Trainer</li>
                     </ul>
-                    <button @click.prevent="paymentPopUp(3)" v-if="loggedin"
+                    <button @click.prevent="paymentPopUp(3)" v-if="loggedin && userRole !== 'member'"
                         class="bg-accent text-secondary px-5 py-2 font-bold mx-auto rounded hover:scale-95 duration-75 invisible group-hover:visible">
                         Checkout
                     </button>
@@ -146,7 +147,7 @@ const loggedin = localStorage.getItem('session')
                         <li>Penggunaan sauna dan kolam renang</li>
                         <li>Diskon 15% pembelian suplemen</li>
                     </ul>
-                    <button @click.prevent="paymentPopUp(2)" v-if="loggedin"
+                    <button @click.prevent="paymentPopUp(2)" v-if="loggedin && userRole !== 'member'"
                         class="bg-accent text-secondary px-5 py-2 font-bold mx-auto rounded hover:scale-95 duration-75 invisible group-hover:visible">
                         Checkout
                     </button>
