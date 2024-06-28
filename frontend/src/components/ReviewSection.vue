@@ -27,16 +27,18 @@ const addReviewPop = () => {
     addReviewSection.classList.add('top-0');
 }
 
-const reviews = ref(null)
+const reviews = ref([])
 
 const fetchData = async () => {
     try {
-        const response = await axios.get('https://ppl-1-1.vercel.app/get/review')
-        reviews.value = response.data
+        const response = await axios.get('http://localhost:3001/get/review')
+        reviews.value = response.data.data
     } catch (error) {
         console.log(error.message)
     }
 }
+
+const loggedin = localStorage.getItem('session')
 
 onMounted(() => {
     fetchData()
@@ -50,14 +52,14 @@ onMounted(() => {
             <SplideSlide v-for="(review, index) in reviews" :key="index" class="px-2 ">
                 <div
                     class="w-full h-full py-5 px-7 bg-accent text-secondary font-light flex flex-col justify-center gap-4 rounded-lg">
-                    <p class="font-bold text-xl">{{ review.pengguna_id }}</p>
+                    <p class="font-bold text-xl">{{ review.username }}</p>
                     <p class="customer-review">{{ review.deskripsi_review }}</p>
                     <p class="font-thin">{{ review.rating }} ⭐</p>
                 </div>
             </SplideSlide>
         </Splide>
 
-        <button @click.prevent="addReviewPop"
+        <button @click.prevent="addReviewPop" v-if="loggedin"
             class="px-5 py-1 outline outline-accent mx-auto rounded mt-5 hover:scale-95 duration-75">Add
             Review</button>
     </div>

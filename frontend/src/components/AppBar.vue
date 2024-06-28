@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import { isLoggedIn } from '@/global/globalState';
+
+const loggedin = localStorage.getItem("session");
 
 const loginPop = () => {
     const loginBar = document.getElementById('login-bar');
@@ -51,7 +52,7 @@ const hamburgerPop = () => {
             class="fixed sm:static inset-x-0 -top-full bottom-full bg-accent sm:bg-transparent flex flex-col sm:flex-row items-center justify-evenly sm:justify-between py-20 sm:py-0 gap-10 text-xl sm:text-base lg:text-lg text-secondary bg-opacity-95 transition-all duration-200 font-semibold sm:font-normal z-40">
             <li class="hover:scale-95 duration-75"><router-link to="/">Home</router-link></li>
             <li class="hover:scale-95 duration-75"><router-link to="/about">About</router-link></li>
-            <li v-if="isLoggedIn" class="hover:scale-95 duration-75">
+            <li v-if="loggedin" class="hover:scale-95 duration-75">
                 <router-link to="/account">Account</router-link>
             </li>
             <li v-else><button id="login-bar-button"

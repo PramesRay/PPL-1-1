@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import axios from 'axios';
-import { isLoggedIn } from '@/global/globalState';
+import Swal from 'sweetalert2'
 
 const registerPop = () => {
     const loginBar = document.getElementById('login-bar');
@@ -35,7 +35,6 @@ const isPasswordLoginValid = computed(() => formData.value.passwordLogin.length 
 const isFormValid = computed(() => isUsernameLoginValid.value && isPasswordLoginValid.value)
 
 const postLogin = () => {
-    // UBAH URL
     axios.post('http://localhost:3001/login', {
         usernameLogin: formData.value.usernameLogin,
         passwordLogin: formData.value.passwordLogin,
@@ -43,15 +42,29 @@ const postLogin = () => {
         .then(response => {
             console.log(response)
             closePop()
-            alert('Login Succeed')
-            isLoggedIn.value = true
-            localStorage.setItem('isLoggedIn', 'true');
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Berhasil Login",
+                showConfirmButton: false,
+                timer: 1500
+            });
+
+            localStorage.setItem("session", true);
+            localStorage.setItem("userId", response.data.userId);
+            localStorage.setItem("userRole", response.data.role);
+            setTimeout(() => window.location.reload(), 1500)
         })
         .catch(error => {
-            alert(error.response.data.message)
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: error.response.data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
         })
 }
-// const users = ref(null)
 </script>
 
 <template>

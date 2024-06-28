@@ -1,7 +1,10 @@
 <script setup>
-import { isLoggedIn } from '@/global/globalState';
 import axios from 'axios';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import Swal from 'sweetalert2'
+
+const loggedin = localStorage.getItem("session");
+const userRole = localStorage.getItem("userRole");
 
 const ciPop = () => {
     const qrPopUp = document.getElementById('qr-pop-up');
@@ -38,48 +41,115 @@ const closePop = () => {
     countPopUp.classList.toggle('scale-x-100');
 }
 
-const qrImage = ref(null)
+const qrImage = ref()
+const userId = localStorage.getItem("userId");
 
 const getQrCode = async () => {
     try {
-        const response = await axios.get('http://localhost:3001/qrcode/40')
-        // const response = await axios.get('https://ppl-1-1.vercel.app/qrcode/40')
+        const response = await axios.get(`http://localhost:3001/qrcode/${userId}`)
 
-        qrImage.value = response.data
-        console.log(response)
+        qrImage.value = response.data.data
     } catch (error) {
         console.log(error.message)
     }
 }
+
+const checkInScan = async () => {
+    try {
+        const response = await axios.post(`http://localhost:3001/check-in/${userId}`)
+        Swal.fire({
+            position: "center",
+            icon: "success",
+            title: response.data.message,
+            showConfirmButton: false,
+            timer: 1500
+        });
+
+        localStorage.setItem('checkIn', true)
+        closePop()
+        setTimeout(() => window.location.reload(), 1500)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const checkOutScan = async () => {
+    try {
+        const response = await axios.post(`http://localhost:3001/check-out/${userId}`)
+        Swal.fire({
+            position: "center",
+            icon: "success",
+            title: response.data.message,
+            showConfirmButton: false,
+            timer: 1500
+        });
+
+        localStorage.removeItem('checkIn')
+        closePop()
+        setTimeout(() => window.location.reload(), 1500)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const isCheckIn = ref(localStorage.getItem('checkIn'))
+const onGymCount = ref(0)
+const fetchData = async () => {
+    try {
+        const response = await axios.get(`http://localhost:3001/visitor-count/${userId}`)
+        onGymCount.value = response.data.visitorCount
+    } catch (error) {
+        console.log(error.message)
+    }
+}
+
+onMounted(() => {
+    fetchData()
+})
 </script>
 
 <template>
     <div class="container left-1/2 -translate-x-1/2 fixed bottom-10 z-20">
 
         <!--  -->
-        <button v-if="isLoggedIn" id="check-in-pop-up"
+        <button v-if="loggedin && userRole === 'member'" id="check-in-pop-up"
             class="absolute bottom-0 right-3 md:right-5 lg:right-10 z-10 w-20 h-20 bg-white text-accent rounded flex hover:scale-95 duration-75"
             @click.prevent="ciPop()">
-            <p class="m-auto px-2 text-center font-medium text-lg">Check In</p>
+            <p v-if="isCheckIn" class="m-auto px-2 text-center font-medium text-lg">Check Out</p>
+            <p v-else class="m-auto px-2 text-center font-medium text-lg">Check In</p>
         </button>
 
         <!--  -->
-        <button v-if="isLoggedIn" id="qr-pop-up"
+        <button v-if="loggedin && userRole === 'member'" id="qr-pop-up"
             class="absolute bottom-0 right-3 md:right-5 lg:right-10 w-20 h-20 bg-white rounded opacity-0 ease-out duration-150 hover:scale-95 "
             @click.prevent="qrPop(), getQrCode()">
             <img src='../assets/qr-placeholder.png' alt="qr" class="bg-cover bg-center p-2" />
         </button>
 
         <!--  -->
-        <div v-if="isLoggedIn" id="count-pop-up"
+        <div v-if="loggedin && userRole !== 'member'" id="count-pop-up"
+            class="absolute bottom-0 right-3 md:right-5 lg:right-10 w-40 h-20 bg-white rounded flex flex-col justify-center items-center font-medium text-lg opacity-100 ease-out duration-300 cursor-default">
+            <p>On Gym Count</p>
+            <span class="font-bold">{{ onGymCount }}</span>
+        </div>
+
+        <!--  -->
+        <div v-else-if="loggedin && userRole === 'member'" id="count-pop-up"
             class="absolute bottom-0 right-3 md:right-5 lg:right-10 w-40 h-20 bg-white rounded flex flex-col justify-center items-center font-medium text-lg opacity-0 ease-out duration-300 cursor-default">
             <p>On Gym Count</p>
-            <span class="font-bold">46</span>
+            <span class="font-bold">{{ onGymCount }}</span>
         </div>
+
+
     </div>
 
-    <div id="check-in-qr" class="w-full fixed h-screen z-50 top-full backdrop-blur flex duration-300 text-black">
-        <img id="qr-image" :src="qrImage" alt="qr" class="bg-cover bg-center m-auto w-80 h-80 lg:w-auto lg:h-3/4" />
+    <div id="check-in-qr"
+        class="w-full fixed h-screen z-50 top-full backdrop-blur flex flex-col justify-center items-center gap-5 duration-300 text-black">
+        <img id="qr-image" :src="qrImage" alt="qr" class="bg-cover bg-center w-80 h-80 lg:w-auto lg:h-3/4" />
+        <button @click.prevent="checkOutScan" v-if="isCheckIn"
+            class="rounded text-white bg-accent px-5 py-1 ">Scan</button>
+        <button @click.prevent="checkInScan" v-else class="rounded text-white bg-accent px-5 py-1 ">Scan</button>
+
         <button class="absolute right-5 top-5 lg:right-16 lg:top-16" @click.prevent="closePop()">
             <svg class="lg:w-12 lg:h-12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <g fill="none" fill-rule="evenodd">

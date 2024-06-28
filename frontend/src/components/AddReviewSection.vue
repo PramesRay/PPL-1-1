@@ -1,32 +1,69 @@
 <script setup>
+import { ref } from 'vue';
+import axios from 'axios';
+import Swal from 'sweetalert2'
+
 const closePop = () => {
     const addReviewSection = document.getElementById('add-review-section');
 
     addReviewSection.classList.remove('top-0');
     addReviewSection.classList.add('top-full');
 }
+
+const formData = ref({
+    deskripsi_review: '',
+    rating: '',
+})
+
+const addReview = async () => {
+    await axios.post('http://localhost:3001/post/review', {
+        deskripsi_review: formData.value.deskripsi_review,
+        rating: formData.value.rating,
+    })
+        .then(response => {
+            console.log(response)
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Berhasil Menambahkan Review",
+                showConfirmButton: false,
+                timer: 1500
+            });
+            closePop();
+        })
+        .catch(error => {
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: error.response.data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        })
+}
 </script>
 
 <template>
     <div id="add-review-section" class="w-full fixed h-screen z-50 top-full backdrop-blur flex duration-300 text-white">
-        <form @submit.prevent=""
+        <form @submit.prevent="addReview"
             class="m-auto flex flex-col gap-3 justify-center items-center w-1/3 bg-accent rounded-xl px-20 py-10 text-lg">
             <div class="w-full">
                 <p>Deskripsi:</p>
-                <textarea id="" class="w-full rounded mt-1"></textarea>
+                <textarea id="deskripsi_review" class="w-full rounded mt-1 text-black px-3 py-1"
+                    v-model="formData.deskripsi_review"></textarea>
             </div>
             <div class="w-full">
                 <p>Rating</p>
                 <div class="w-full flex justify-evenly">
-                    <input type="radio" id="1" name="rating" value="1">
+                    <input type="radio" id="1" name="rating" value="1" v-model="formData.rating">
                     <label for="1">1</label><br>
-                    <input type="radio" id="2" name="rating" value="2">
+                    <input type="radio" id="2" name="rating" value="2" v-model="formData.rating">
                     <label for="2">2</label><br>
-                    <input type="radio" id="3" name="rating" value="3">
+                    <input type="radio" id="3" name="rating" value="3" v-model="formData.rating">
                     <label for="3">3</label><br>
-                    <input type="radio" id="4" name="rating" value="4">
+                    <input type="radio" id="4" name="rating" value="4" v-model="formData.rating">
                     <label for="4">4</label><br>
-                    <input type="radio" id="5" name="rating" value="5">
+                    <input type="radio" id="5" name="rating" value="5" v-model="formData.rating">
                     <label for="5">5</label><br>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios';
 import { ref, computed } from 'vue';
+import Swal from 'sweetalert2'
 
 const closePop = () => {
     const loginBar = document.getElementById('login-bar');
@@ -51,10 +52,22 @@ const postRegister = () => {
         .then(response => {
             console.log(response)
             loginPop()
-            alert('Berhasil registrasi')
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Berhasil register, segera lakukan verifikasi!",
+                showConfirmButton: false,
+                timer: 1500
+            });
         })
         .catch(error => {
-            alert(error.response.data.message)
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: error.response.data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
         })
 }
 </script>
