@@ -15,8 +15,10 @@ const formData = ref({
     rating: '',
 })
 
+const userId = localStorage.getItem("userId")
+
 const addReview = async () => {
-    await axios.post('http://localhost:3001/post/review', {
+    await axios.post(`http://localhost:3001/post/review/${userId}`, {
         deskripsi_review: formData.value.deskripsi_review,
         rating: formData.value.rating,
     })
